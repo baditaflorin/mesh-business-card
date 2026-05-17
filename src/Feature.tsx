@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import {
   QRExchange,
   makeScanPayload,
+  SafeLink,
+  safeJson,
+  useStorageNamespace,
   type MeshConfig,
   type YRoom,
 } from "@baditaflorin/mesh-common";
@@ -17,7 +20,7 @@ type Card = {
   org: string;
 };
 
-const KEY = (p: string, k: string) => `${p}:card:${k}`;
+const CARD_KEY = (k: string) => `card:${k}`;
 
 const blank: Card = { name: "", title: "", email: "", phone: "", url: "", org: "" };
 
@@ -25,13 +28,17 @@ function encodeCard(c: Card): string {
   return btoa(unescape(encodeURIComponent(JSON.stringify(c))));
 }
 function decodeCard(s: string): Card | null {
+  let raw: string;
   try {
-    const parsed = JSON.parse(decodeURIComponent(escape(atob(s))));
-    if (parsed && typeof parsed === "object" && typeof parsed.name === "string") {
-      return { ...blank, ...parsed };
-    }
+    raw = decodeURIComponent(escape(atob(s)));
   } catch {
-    /* ignore */
+    return null;
+  }
+  const parsed = safeJson<Partial<Card>>(raw, { maxBytes: 4096, maxDepth: 4 });
+  if (!parsed.ok) return null;
+  const v = parsed.value;
+  if (v && typeof v === "object" && typeof v.name === "string") {
+    return { ...blank, ...v };
   }
   return null;
 }
@@ -65,16 +72,17 @@ export function Feature({ room, config }: Props) {
 }
 
 function Body({ room, config }: { room: YRoom; config: MeshConfig }) {
+  const ns = useStorageNamespace(config.storagePrefix);
   const fields: Array<keyof Card> = ["name", "title", "org", "email", "phone", "url"];
   const [card, setCard] = useState<Card>(() => {
     const out: Card = { ...blank };
-    for (const k of fields) out[k] = localStorage.getItem(KEY(config.storagePrefix, k)) ?? "";
+    for (const k of fields) out[k] = ns.get<string>(CARD_KEY(k)) ?? "";
     return out;
   });
   const [, rerender] = useState(0);
 
   useEffect(() => {
-    for (const k of fields) localStorage.setItem(KEY(config.storagePrefix, k), card[k]);
+    for (const k of fields) ns.set(CARD_KEY(k), card[k]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card]);
 
@@ -197,11 +205,7 @@ function Body({ room, config }: { room: YRoom; config: MeshConfig }) {
                 {c.org && <span>{c.org}</span>}
                 {c.email && <a href={`mailto:${c.email}`}>{c.email}</a>}
                 {c.phone && <a href={`tel:${c.phone}`}>{c.phone}</a>}
-                {c.url && (
-                  <a href={c.url} target="_blank" rel="noreferrer">
-                    {c.url}
-                  </a>
-                )}
+                {c.url && <SafeLink href={c.url}>{c.url}</SafeLink>}
               </li>
             ))}
           </ul>
