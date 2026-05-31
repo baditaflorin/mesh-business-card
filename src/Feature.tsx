@@ -121,9 +121,11 @@ function Body({ room, config }: { room: YRoom; config: MeshConfig }) {
   });
   collected.sort((a, b) => a.name.localeCompare(b.name));
 
+  const vcfText = collected.map(toVcf).join("\n");
+
   const exportAllVcf = () => {
     if (collected.length === 0) return;
-    const blob = new Blob([collected.map(toVcf).join("\n")], { type: "text/vcard" });
+    const blob = new Blob([vcfText], { type: "text/vcard" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -219,6 +221,12 @@ function Body({ room, config }: { room: YRoom; config: MeshConfig }) {
         >
           export all as .vcf
         </button>
+        {collected.length > 0 && (
+          <details className="bc-vcf-preview" style={{ marginTop: "0.6rem" }}>
+            <summary>preview .vcf</summary>
+            <pre className="bc-vcf-text">{vcfText}</pre>
+          </details>
+        )}
       </section>
     </div>
   );
