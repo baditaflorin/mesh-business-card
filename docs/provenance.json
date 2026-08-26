@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "app": "mesh-business-card",
+  "sourceCommit": "52a73b7809d4a92b31f2fb84e01e58138d6d25f1",
+  "releaseCommit": "52a73b7809d4a92b31f2fb84e01e58138d6d25f1",
+  "meshCommonCommit": "025f7ff72e50c4b54a3f4a2d8c88f4f600dec78f",
+  "recordedAt": "2026-08-26T20:30:55Z"
+}
